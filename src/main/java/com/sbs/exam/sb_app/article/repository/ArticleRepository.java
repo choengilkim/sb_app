@@ -1,63 +1,63 @@
 package com.sbs.exam.sb_app.article.repository;
 
 import com.sbs.exam.sb_app.article.vo.Article;
+import org.apache.ibatis.annotations.*;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Component //service는 service repository는 component
-public class ArticleRepository {
-  private int articleLastId;
-  private List<Article> articles;
+@Mapper
+public interface ArticleRepository {
 
-  public ArticleRepository() {
-    articles = new ArrayList<>();
-    articleLastId = 0;
-  }
+  @Insert("""
+          INSERT INTO article
+          SET regDate = NOW(),
+          updateDate = NOW(),
+          title = #{title},
+          `body` = #{body}
+          """)
+  public void writeArticle(@Param("title") String title, @Param("body")String body);
 
-  public void makeTestData() {
-    for(int i=1; i<=10; i++) {
-      String title = "제목" + i;
-      String body = "내용" + i;
+  @Select("""
+          SELECT *
+          FROM article
+          WHERE id = #{id}
+          """)
+  public Article getArticle(int id);
 
-      writeArticle(title, body);
-    }
-  }
+  @Delete("""
+          DELETE 
+          FROM article 
+          WHERE id = #{id}
+          """)
+  public void deleteArticle(int id);
 
-  public Article writeArticle(String title, String body) {
-    int id = articleLastId + 1;
+  @Select("""
+          SELECT *
+          FROM article
+          ORDER BY id DESC
+          """)
+  public List<Article> getArticles();
 
-    Article article = new Article(id, title, body);
-    articles.add(article);
-    articleLastId = id;
+  @Update("""
+          <script>
+          UPDATE article
+          <set>
+            <if test='title != null'>
+              title = #{title},
+            </if>
+            <if test='body != null'>
+              `body` = #{body},
+            </if>
+            updateDate = NOW()
+          </set>
+          WHERE id = #{id}
+          </script>
+          """) //mybatis의 동적sql사용
+  public void modifyArticle(@Param("id")int id, @Param("title") String title, @Param("body") String body);
 
-    return article;
-  }
-
-  public Article getArticle(int id) {
-    for(Article article : articles) {
-      if(article.getId() == id) {
-        return article;
-      }
-    }
-    return null;
-  }
-
-  public void deleteArticle(int id) {
-    Article article = getArticle(id);
-
-    articles.remove(article);
-  }
-
-  public List<Article> getArticles() {
-    return articles;
-  }
-
-  public void modifyArticle(int id, String title, String body) {
-    Article article = getArticle(id);
-
-    article.setTitle(title);
-    article.setBody(body);
-  }
+  @Select("SELECT LAST_INSERT_ID()")
+  public int getLastInsertId();
 }
+
